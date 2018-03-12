@@ -1,0 +1,298 @@
+/*
+ * %W% %E%
+ *
+ * Copyright (c) 2008, Oracle and/or its affiliates. All rights reserved.
+ * ORACLE PROPRIETARY/CONFIDENTIAL. Use is subject to license terms.
+ */
+
+package sun.awt;
+
+import java.awt.*;
+import java.awt.geom.Point2D;
+import java.awt.image.BufferedImage;
+import sun.misc.Unsafe;
+import java.awt.peer.ComponentPeer;
+
+/** The AWTAccessor utility class. 
+ * The main purpose of this class is to enable accessing
+ * private and package-private fields of classes from
+ * different classes/packages. See sun.misc.SharedSecretes
+ * for another example.
+ */
+public final class AWTAccessor {
+    private static final Unsafe unsafe = Unsafe.getUnsafe();
+
+    /** We don't need any objects of this class. 
+     * It's rather a collection of static methods
+     * and interfaces.
+     */
+    private AWTAccessor() {
+    }
+
+    /** An interface of an accessor for java.awt.Window class.
+     */
+    public interface WindowAccessor {
+        /** Get opacity level of the given window.
+         */
+        float getOpacity(Window window);
+
+        /** Set opacity level to the given window.
+         */
+        void setOpacity(Window window, float opacity);
+
+        /** Get a shape assigned to the given window.
+         */
+        Shape getShape(Window window);
+
+        /** Set a shape to the given window.
+         */
+        void setShape(Window window, Shape shape);
+
+        /** Identify whether the given window is opaque (true)
+         *  or translucent (false).
+         */
+        boolean isOpaque(Window window);
+
+        /** Set the opaque preoperty to the given window.
+         */
+        void setOpaque(Window window, boolean isOpaque);
+
+        /** Update the image of a non-opaque (translucent) window.
+         */
+        void updateWindow(Window window);
+
+        /** Get the size of the security warning.
+         */
+        Dimension getSecurityWarningSize(Window w);
+
+        /**
+         * Set the size of the security warning.
+         */
+        void setSecurityWarningSize(Window w, int width, int height);
+
+        /** Set the position of the security warning.
+         */
+        void setSecurityWarningPosition(Window w, Point2D point,
+                float alignmentX, float alignmentY);
+
+        /** Request to recalculate the new position of the security warning for
+         * the given window size/location as reported by the native system.
+         */
+        Point2D calculateSecurityWarningPosition(Window window,
+                double x, double y, double w, double h);
+
+        /** Sets the synchronous status of focus requests on lightweight
+         * components in the specified window to the specified value.
+         */
+        void setLWRequestStatus(Window changed, boolean status);
+    }
+
+    /** An accessor for the java.awt.Component class.
+     */
+    public interface ComponentAccessor {
+        /** Sets whether the native background erase for a component
+         *  has been disabled via SunToolkit.disableBackgroundErase().
+         */
+        void setBackgroundEraseDisabled(Component comp, boolean disabled);
+
+        /** Indicates whether the native background erase for a
+         *  component has been disabled via
+         *  SunToolkit.disableBackgroundErase().
+         */
+        boolean getBackgroundEraseDisabled(Component comp);
+
+        // See 6797587
+        // Also see: 6776743, 6768307, and 6768332.
+        /**
+         * Sets the shape of a lw component to cut out from hw components.
+         */
+        void setMixingCutoutShape(Component comp, Shape shape);
+
+        /**
+         * Gets the bounds of this component in the form of a
+         * <code>Rectangle</code> object. The bounds specify this
+         * component's width, height, and location relative to
+         * its parent.
+         */
+        Rectangle getBounds(Component comp);
+
+        /**
+         * Resets the GraphicsConfiguration of the component
+         * back to the default value.
+         */
+        void resetGC(Component comp);
+
+        /**
+         * Sets the RequestFocusController.
+         */ 
+        void setRequestFocusController(RequestFocusController requestController);
+
+        /**
+         * Returns the private key of the component.
+         */
+        Object getPrivateKey(Component comp);
+
+        /**
+         * Returns the appContext of the component.
+         */ 
+        AppContext getAppContext(Component comp);
+
+        /**
+         * Sets the appContext of the component.
+         */
+        void setAppContext(Component comp, AppContext appContext);
+
+        /**
+         * Returns the peer of the component.
+         */
+        ComponentPeer getPeer(Component comp);
+    }
+
+    /** An accessor for the AWTEvent class.
+     */
+    public interface AWTEventAccessor {
+        /**
+         * Sets the flag on this AWTEvent indicating that it was
+         * generated by the system.
+         */
+        void setSystemGenerated(AWTEvent ev);
+
+        /**
+         * Indicates whether this AWTEvent was generated by the system.
+         */
+        boolean isSystemGenerated(AWTEvent ev);
+
+        /**
+         * Marks the event as posted.
+         */      
+        void setPosted(AWTEvent ev);
+    }
+
+    /** An accessor for the MenuComponent class.
+     */
+    public interface MenuComponentAccessor {
+        /**
+         * Returns the private key of the menu component.
+         */
+        Object getPrivateKey(MenuComponent menuComp);
+
+        /**
+         * Returns the appContext of the menu component.
+         */
+        AppContext getAppContext(MenuComponent menuComp);
+
+        /**
+         * Sets the appContext of the menu component.
+         */
+        void setAppContext(MenuComponent menuComp, AppContext appContext);
+    }
+
+    /** An accessor for the TrayIcon class.
+     */
+    public interface TrayIconAccessor {
+        /**
+         * Returns the private key of the trayIcon component.
+         */
+        Object getPrivateKey(TrayIcon trayIcon);
+    }
+
+    /* The java.awt.Window class accessor object.
+     */
+    private static WindowAccessor windowAccessor;
+
+    /* The java.awt.Component class accessor object.
+     */
+    private static ComponentAccessor componentAccessor;
+
+    /* The java.awt.AWTEvent class accessor object.
+     */
+    private static AWTEventAccessor awtEventAccessor;
+
+    /* The java.awt.MenuComponent class accessor object.
+     */
+    private static MenuComponentAccessor menuComponentAccessor;
+
+    /* The java.awt.TrayIcon class accessor object.
+     */
+    private static TrayIconAccessor trayIconAccessor;
+
+    /** Set an accessor object for the java.awt.Window class.
+     */
+    public static void setWindowAccessor(WindowAccessor wa) {
+        windowAccessor = wa;
+    }
+
+    /** Retrieve the accessor object for the java.awt.Window class.
+     */
+    public static WindowAccessor getWindowAccessor() {
+        if (windowAccessor == null) {
+            unsafe.ensureClassInitialized(Window.class);
+        }
+
+        return windowAccessor;
+    }
+
+    /** Set an accessor object for the java.awt.Component class.
+     */
+    public static void setComponentAccessor(ComponentAccessor ca) {
+        componentAccessor = ca;
+    }
+
+    /** Retrieve the accessor object for the java.awt.Window class.
+     */
+    public static ComponentAccessor getComponentAccessor() {
+        if (componentAccessor == null) {
+            unsafe.ensureClassInitialized(Component.class);
+        }
+
+        return componentAccessor;
+    }
+
+    /** Set an accessor object for the java.awt.AWTEvent class.
+     */
+    public static void setAWTEventAccessor(AWTEventAccessor aea) {
+        awtEventAccessor = aea;
+    }
+
+    /** Retrieve the accessor object for the java.awt.AWTEvent class.
+     */
+    public static AWTEventAccessor getAWTEventAccessor() {
+        if (awtEventAccessor == null) {
+            unsafe.ensureClassInitialized(AWTEvent.class);
+        }
+
+        return awtEventAccessor;
+    }
+
+    /** Set an accessor object for the java.awt.MenuComponent class.
+     */
+    public static void setMenuComponentAccessor(MenuComponentAccessor mca) {
+        menuComponentAccessor = mca;
+    }
+
+    /** Retrieve the accessor object for the java.awt.MenuComponent class.
+     */
+    public static MenuComponentAccessor getMenuComponentAccessor() {
+        if (menuComponentAccessor == null) {
+            unsafe.ensureClassInitialized(MenuComponent.class);
+        }
+
+        return menuComponentAccessor;
+    }
+
+    /** Set an accessor object for the java.awt.TrayIcon class.
+     */
+    public static void setTrayIconAccessor(TrayIconAccessor tia) {
+        trayIconAccessor = tia;
+    }
+
+    /** Retrieve the accessor object for the java.awt.TrayIcon class.
+     */
+    public static TrayIconAccessor getTrayIconAccessor() {
+        if (trayIconAccessor == null) {
+            unsafe.ensureClassInitialized(TrayIcon.class);
+        }
+
+        return trayIconAccessor;
+    }
+}
